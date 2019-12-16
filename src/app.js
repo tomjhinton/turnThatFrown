@@ -13,6 +13,7 @@ const webcamElement = document.getElementById('webcam')
 
 console.log(faceapi)
 
+let sad, surprised, happy
 
 Promise.all([
   faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
@@ -35,22 +36,22 @@ webcamElement.addEventListener('play', () => {
   faceapi.matchDimensions(canvas, displaySize)
   setInterval(async () => {
     const detections = await faceapi.detectAllFaces(webcamElement, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions()
-    if(detections.length>0){
-      console.log(detections[0].expressions)
-    }
     const resizedDetections = faceapi.resizeResults(detections, displaySize)
+    console.log(resizedDetections[0].expressions)
+    happy = resizedDetections[0].expressions.happy
+    surprised = resizedDetections[0].expressions.surprised
     canvas.width = webcamElement.width
     canvas.height= webcamElement.height
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
-    //canvas.getContext('2d').drawImage(webcamElement, 0, 0, canvas.width, canvas.height)
     faceapi.draw.drawDetections(canvas, resizedDetections)
     faceapi.draw.drawFaceLandmarks(canvas, resizedDetections)
     faceapi.draw.drawFaceExpressions(canvas, resizedDetections)
+    //console.log(faceapi)
   }, 100)
 })
 
 let world, body, shape, timeStep=1/60,
-  camera, scene, renderer, geometry, material, mesh, groundBody, floor, groundShape, platform,   platCanArr = [], platThreeArr = [],  score = 0, playerMaterial, playerContactMaterial, wallMaterial,   playing = true, version  = 0, totalScore = 0, start = false, ready
+  camera, scene, renderer, geometry, material, mesh, groundBody, floor, groundShape, platform,   platCanArr = [], platThreeArr = [],  score = 0, playerMaterial, playerContactMaterial, wallMaterial,   playing = true, version  = 0, totalScore = 0, start = false, ready, expressionsObj
 
 
 const scoreboard = document.getElementById('score')
@@ -133,7 +134,7 @@ function initGame() {
 
 
   function createPlatform(x,y,z){
-    groundShape = new CANNON.Box(new CANNON.Vec3(10,10,1))
+    groundShape = new CANNON.Box(new CANNON.Vec3(10,40,1))
     groundBody = new CANNON.Body({ mass: 0, material: wallMaterial })
     groundBody.addShape(groundShape)
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2)
@@ -146,7 +147,7 @@ function initGame() {
     platCanArr.push(groundBody)
 
 
-    platform = new THREE.BoxGeometry( 20, 20, 2 )
+    platform = new THREE.BoxGeometry( 20, 80, 2 )
     material =  new THREE.MeshPhongMaterial( { color: `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},1)`, specular: `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},1)` , shininess: 100, side: THREE.DoubleSide, opacity: 0.8,
       transparent: false } )
 
@@ -165,7 +166,7 @@ function initGame() {
   createPlatform(0,-20,0)
 
   for(let i=1;i<25;i ++ ){
-    createPlatform(Math.random()*80,-20,-40*i)
+    createPlatform(40*i,i+10,0)
 
   }
 
@@ -186,6 +187,13 @@ const cannonDebugRenderer = new THREE.CannonDebugRenderer( scene, world )
 
 let time = 0
 function animate() {
+
+  if(happy>0.9){
+    body.velocity.y++
+  }
+  if(surprised>0.9){
+    body.velocity.x++
+  }
   score = platThreeArr.filter(x=> x.position.z > mesh.position.z).length
   time+=0.01
   camera.position.x = mesh.position.x+ 0.20861329770365564
@@ -215,7 +223,7 @@ function animate() {
 
     if(i%3===0 && i%2!==0 && version%2===0){
       platThreeArr[i].rotation.y += 0.01
-      platThreeArr[i].position.x = i*2+ Math.sin(time) * 20
+      platThreeArr[i].position.y = i*2+ Math.sin(time) * 20
     }
 
     if(i%5===0 && i%2!==0 && version%2===0){
@@ -251,7 +259,8 @@ function animate() {
     //cannonDebugRenderer.update()
   }
   if(scoreboard && playing){
-    scoreboard.innerHTML = 'SCORE: '+ (score +totalScore)
+    //scoreboard.innerHTML = 'SCORE: '+ (score +totalScore)
+    scoreboard.innerHTML = 'happy: '+ happy + ' surprised: '+ surprised
   }
 
   //controls.update()
